@@ -1,1 +1,8 @@
 streamlit
+langchin_community
+langchain
+streamlit
+faiss-cpu
+huggingface_hub
+requests
+langchain_text_splitters
