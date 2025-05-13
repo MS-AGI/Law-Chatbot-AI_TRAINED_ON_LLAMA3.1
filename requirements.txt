@@ -3,6 +3,7 @@ langchain-community
 langchain
 streamlit
 faiss-cpu
+huggingface_hub[hf_xet]
 huggingface_hub
 requests
 langchain-text_splitters
