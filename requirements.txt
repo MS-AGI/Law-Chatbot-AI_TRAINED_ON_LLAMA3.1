@@ -9,3 +9,4 @@ langchain-text_splitters
 langchain-huggingface
 pymupdf
 accelerate
+transformers
