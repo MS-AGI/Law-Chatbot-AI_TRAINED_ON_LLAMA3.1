@@ -4,16 +4,14 @@ from langchain_community.document_loaders import TextLoader, PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEndpoint
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 from langchain.retrievers.document_compressors import CrossEncoderReranker
-from huggingface_hub import InferenceClient
 from langchain.chains import RetrievalQA
 import streamlit as st
 print(os.getenv("HF_API_TOKEN"))
-HF_API_TOKEN = "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"
-LLAMA_MODEL_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.1-8B-Instruct"
+HF_TOKEN = "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"
+LLAMA_MODEL_URL = "https://api-inference.huggingface.co/models/meta-llama/meta-llama/Llama-3.2-1B-Instruct"
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 RERANKER_MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
@@ -49,27 +47,35 @@ def split_documents(documents):
     chunks = splitter.split_documents(documents)
     return chunks
 
+from sentence_transformers import SentenceTransformer
+from langchain.embeddings import HuggingFaceEmbeddings
+
 def create_vectorstore(chunks):
-    embedding_function = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
-    vectorstore = FAISS.from_documents(chunks, embedding_function)
+    embed_model = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
+    vectorstore = FAISS.from_documents(chunks, embed_model)
     return vectorstore
 
-hf_client = InferenceClient(
-    provider="hf-inference",
-    api_key=HF_API_TOKEN,
-)
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from langchain_community.llms import HuggingFacePipeline
 
 def create_llm():
-    return HuggingFaceEndpoint(
-        endpoint_url=LLAMA_MODEL_URL,
-        task="text-generation",
+    model_name = "meta-llama/Llama-3.2-1B-Instruct"  # Example; adjust to your local model path if downloaded
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-1B-Instruct", token=HF_TOKEN)
+    model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.2-1B-Instruct", token=HF_TOKEN)  # Or load in CPU with `device_map="cpu"`
+
+    pipe = pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
         max_new_tokens=512,
         temperature=0.2,
-        top_k=50,
-        server_kwargs={
-            "headers": {"Authorization": f"Bearer {HF_API_TOKEN}"}
-        },
+        top_k=50
     )
+
+    return HuggingFacePipeline(pipeline=pipe)
+
 
 def create_reranker_retriever(vectorstore):
     reranker_model = HuggingFaceCrossEncoder(
