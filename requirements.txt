@@ -7,3 +7,5 @@ huggingface_hub
 requests
 langchain-text_splitters
 langchain-huggingface
+pymupdf
+accelerate
